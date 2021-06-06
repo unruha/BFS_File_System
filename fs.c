@@ -84,11 +84,9 @@ i32 fsOpen(str fname) {
 // ============================================================================
 i32 fsRead(i32 fd, i32 numb, void* buf) {
 
-  // ++++++++++++++++++++++++
-  // Insert your code here
-  // ++++++++++++++++++++++++
-
-  FATAL(ENYI);                                  // Not Yet Implemented!
+  // get to inum of the file to be read
+  i32 inum = bfsFdToInum(fd);
+                                    
   return 0;
 }
 
