@@ -86,6 +86,9 @@ i32 fsRead(i32 fd, i32 numb, void* buf) {
 
   // get to inum of the file to be read
   i32 inum = bfsFdToInum(fd);
+
+  // get cursor position of file
+  i32 cursor = bfsTell(fd);
                                     
   return 0;
 }
