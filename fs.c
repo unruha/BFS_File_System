@@ -93,21 +93,56 @@ i32 fsRead(i32 fd, i32 numb, void* buf) {
   // determine the FBN that holds the offset
   i32 firstFBN = cursor / BYTESPERBLOCK;
 
-  // read contents of the FBN into buffer
-  i8* bioBuf = malloc(512);
-  bfsRead(inum, firstFBN, bioBuf);
+  // determine the last FBN we need to access
+  i32 totalBytes = cursor + numb;
+  i32 lastFBN = totalBytes / BYTESPERBLOCK;
 
-  // determine the offset within the FBN
-  i32 blockOffset = cursor % BYTESPERBLOCK;
+  // current offset in the return buffer
+  i32 bufOffset = 0;
 
-  // copy the data at the offset into the buffer
-  memcpy(buf, bioBuf + blockOffset, numb);
+  // loop through each block and add to the return buffer
+  for (int i = firstFBN; i <= lastFBN; i++)
+  {
+    // allocate temporary buffer
+    i8* bioBuf = malloc(BYTESPERBLOCK);
+
+    // case for when the FBN is the first FBN to be read
+    if (i == firstFBN) {
+
+      // read contents of the FBN into buffer
+      bfsRead(inum, i, bioBuf);
+
+      // determine the offset within the FBN
+      i32 blockOffset = cursor % BYTESPERBLOCK;
+
+      // determine total num bytes to allocate
+      i32 numAllocations = BYTESPERBLOCK - blockOffset;
+
+      // copy the data at the offset into the buffer
+      memcpy(buf, bioBuf + blockOffset, numAllocations);
+
+      // update the buffer offset
+      bufOffset += numAllocations;
+    }
+    // it is one of the FBN's in the middle, therefore we read the entire block
+    else {
+
+      // read contents of the FBN into buffer
+      bfsRead(inum, i, bioBuf);
+
+      // copy the data at the offset into the buffer
+      memcpy(buf + bufOffset, bioBuf, BYTESPERBLOCK);
+
+      // update buffer offset
+      bufOffset += BYTESPERBLOCK;
+    }
+
+    // free the bioBuf
+    free(bioBuf);
+  }
 
   // set the new cursor
   bfsSetCursor(inum, cursor + numb);
-
-  // free the bioBuf
-  free(bioBuf);
                                     
   return numb;
 }
