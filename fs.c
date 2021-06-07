@@ -213,10 +213,69 @@ i32 fsSize(i32 fd) {
 // ============================================================================
 i32 fsWrite(i32 fd, i32 numb, void* buf) {
 
-  // ++++++++++++++++++++++++
-  // Insert your code here
-  // ++++++++++++++++++++++++
+  // get to inum of the file to be read
+  i32 inum = bfsFdToInum(fd);
 
-  FATAL(ENYI);                                  // Not Yet Implemented!
+  // get cursor position of file
+  i32 cursor = bfsTell(fd);
+
+  // get file size
+  i32 fSize = bfsGetSize(inum);
+
+  // file size after writing the additional bytes
+  i32 newfSize = cursor + numb;
+
+  // case for when allocation will be greater than current file length 
+  // must determine whether the remaining memory in the last block is enough
+  // otherwise, we need to allocate new blocks
+  if (fSize < newfSize) {
+
+    // determine current number of blocks that the file has
+    i32 fCurrentBlocks = 0;
+    // case for when the file fills up its last block
+    if (fSize % BYTESPERBLOCK == 0) {
+      fCurrentBlocks = fSize / BYTESPERBLOCK;
+    }
+    // case for when the last block has leftover
+    else if(fSize % BYTESPERBLOCK != 0) {
+      fCurrentBlocks = fSize / BYTESPERBLOCK + 1;
+    }
+    else {
+      printf("ERROR: calculating number of current file blocks");
+    }
+
+    printf("Current block size: %d\n", fCurrentBlocks);
+
+    // determine if the available space is enough
+    i32 fTotalAvailable = fCurrentBlocks * BYTESPERBLOCK;
+
+    if (fTotalAvailable < newfSize) {
+
+      // determine how many new blocks to allocate
+      i32 memNeeded = newfSize - fTotalAvailable;
+      i32 blocksNeeded = 0;
+
+      // case for when we will to fill up newly allocated blocks
+      if (memNeeded % BYTESPERBLOCK == 0) {
+        blocksNeeded = memNeeded / BYTESPERBLOCK;
+      }
+      // case for when there will be remaining space on the last new allocated block
+      else if (memNeeded % BYTESPERBLOCK != 0) {
+        blocksNeeded = memNeeded / BYTESPERBLOCK + 1;
+      }
+      else {
+        printf("ERROR: calculating number of blocks needed");
+      }
+      
+      // determine new FBN size
+      i32 fbnSize = fCurrentBlocks + blocksNeeded;
+      // allocate new blocks
+      bfsExtend(inum, fbnSize);
+
+      printf("New block size: %d\n", fbnSize);
+    }
+    
+  }
+  
   return 0;
 }
