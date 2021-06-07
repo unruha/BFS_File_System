@@ -89,8 +89,27 @@ i32 fsRead(i32 fd, i32 numb, void* buf) {
 
   // get cursor position of file
   i32 cursor = bfsTell(fd);
+
+  // determine the FBN that holds the offset
+  i32 firstFBN = cursor / BYTESPERBLOCK;
+
+  // read contents of the FBN into buffer
+  i8* bioBuf = malloc(512);
+  bfsRead(inum, firstFBN, bioBuf);
+
+  // determine the offset within the FBN
+  i32 blockOffset = cursor % BYTESPERBLOCK;
+
+  // copy the data at the offset into the buffer
+  memcpy(buf, bioBuf + blockOffset, numb);
+
+  // set the new cursor
+  bfsSetCursor(inum, cursor + numb);
+
+  // free the bioBuf
+  free(bioBuf);
                                     
-  return 0;
+  return numb;
 }
 
 
