@@ -305,8 +305,19 @@ i32 fsWrite(i32 fd, i32 numb, void* buf) {
       // determine first blockOffset
       i32 firstBlockOffset = cursor % BYTESPERBLOCK;
 
-      // determine number of bytes to write to first block
-      i32 firstBlockBytes = BYTESPERBLOCK - firstBlockOffset;
+      /* // determine number of bytes to write to first block
+      i32 firstBlockBytes = BYTESPERBLOCK - firstBlockOffset; */
+
+      i32 firstBlockBytes = -1;
+
+      // handle small write (within the same block)
+      if (fbnStart == fbnEnd) {
+        firstBlockBytes = numb;
+      }
+      else if (fbnEnd > fbnStart) {
+        // determine number of bytes to write to first block
+        firstBlockBytes = BYTESPERBLOCK - firstBlockOffset;
+      }
 
       // overwrite the portion of the buf that is being written to
       memcpy(bioBuf + firstBlockOffset, buf, firstBlockBytes);

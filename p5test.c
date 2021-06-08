@@ -153,7 +153,8 @@ void test4(i32 fd) {
 
   check(4, buf, 0,  10,  7);
   check(4, buf, 10, 77,  77);
-  check(4, buf, 87, 425, 7);   
+  check(4, buf, 87, 425, 7);
+  
 }
 
 
