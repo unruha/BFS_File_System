@@ -244,11 +244,10 @@ i32 fsWrite(i32 fd, i32 numb, void* buf) {
       printf("ERROR: calculating number of current file blocks");
     }
 
-    printf("Current block size: %d\n", fCurrentBlocks);
-
     // determine if the available space is enough
     i32 fTotalAvailable = fCurrentBlocks * BYTESPERBLOCK;
 
+    // allocate new blocks if we need to
     if (fTotalAvailable < newfSize) {
 
       // determine how many new blocks to allocate
@@ -271,11 +270,97 @@ i32 fsWrite(i32 fd, i32 numb, void* buf) {
       i32 fbnSize = fCurrentBlocks + blocksNeeded;
       // allocate new blocks
       bfsExtend(inum, fbnSize);
-
-      printf("New block size: %d\n", fbnSize);
     }
+
+    // update the size of the file
+    bfsSetSize(inum, newfSize);
     
   }
-  
+
+  // store the first fbn number to write to
+  i32 fbnStart = cursor / BYTESPERBLOCK;
+
+  // store the last fbn number to write to
+  i32 fbnEnd = (cursor + numb) / BYTESPERBLOCK;
+
+  // store total number of blocks to write to
+  i32 totalBlocks = fbnStart - fbnEnd + 1;
+
+  // keep track of current buf offset
+  i32 bufOffset = 0;
+
+  // loop through and write to each block
+  for (int i = fbnStart; i <= fbnEnd; i++) {
+
+    // temporary block buffer
+    i8* bioBuf = malloc(BYTESPERBLOCK);
+
+    // case for if we are reading the first block
+    // so need to read in the block before writing
+    if (i == fbnStart) {
+
+      // read the contents of the block
+      bfsRead(inum, i, bioBuf);
+
+      // determine first blockOffset
+      i32 firstBlockOffset = cursor % BYTESPERBLOCK;
+
+      // determine number of bytes to write to first block
+      i32 firstBlockBytes = BYTESPERBLOCK - firstBlockOffset;
+
+      // overwrite the portion of the buf that is being written to
+      memcpy(bioBuf + firstBlockOffset, buf, firstBlockBytes);
+
+      // determine the DBN of the FBN
+      i32 dbn = bfsFbnToDbn(inum, i);
+
+      // write the block to the disk
+      bioWrite(dbn, bioBuf);
+
+      bufOffset += firstBlockBytes;
+    }
+    // case for if we are writing to the last block
+    // so need to read in the block so we dont overwrite existing data
+    else if (i == fbnEnd) {
+
+      // read the contents of the block
+      bfsRead(inum, i, bioBuf);
+
+      // determine number of bytes to write to last block
+      i32 lastBlockStart = BYTESPERBLOCK * fbnEnd;
+      i32 lastBlockBytes = (cursor + numb) - lastBlockStart;
+
+      // overwrite the portion of the buf that is being written to
+      memcpy(bioBuf, buf + bufOffset, lastBlockBytes);
+
+      // determine the DBN of the FBN
+      i32 dbn = bfsFbnToDbn(inum, i);
+
+      // write the block to the disk
+      bioWrite(dbn, bioBuf);
+
+      bufOffset += lastBlockBytes;
+    }
+    // case when it is one of the middle blocks
+    else {
+
+      // write to the buf
+      memcpy(bioBuf, buf + bufOffset, BYTESPERBLOCK);
+
+      // determine the DBN of the FBN
+      i32 dbn = bfsFbnToDbn(inum, i);
+
+      // write to the disk
+      bioWrite(dbn, bioBuf);
+
+      bufOffset += BYTESPERBLOCK;
+    }
+
+    free(bioBuf);
+  }
+
+  // set new cursor
+  bfsSetCursor(inum, cursor + numb);
+
   return 0;
 }
