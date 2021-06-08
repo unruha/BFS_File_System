@@ -331,7 +331,7 @@ i32 fsWrite(i32 fd, i32 numb, void* buf) {
       i32 lastBlockBytes = (cursor + numb) - lastBlockStart;
 
       // overwrite the portion of the buf that is being written to
-      memcpy(bioBuf, buf + bufOffset, lastBlockBytes);
+      memcpy(bioBuf, buf + (numb - lastBlockBytes), lastBlockBytes);
 
       // determine the DBN of the FBN
       i32 dbn = bfsFbnToDbn(inum, i);
